@@ -1,5 +1,6 @@
 print("Beginning script...")
 
+# Standard Libraries
 from pathlib import Path
 import numpy as np
 import rasterio
@@ -7,8 +8,11 @@ from rasterio.warp import reproject, Resampling, transform_bounds
 from rasterio.merge import merge
 from scipy.ndimage import binary_opening, binary_closing, binary_fill_holes
 
-# NEW: WorldCover tile selection module
+# Other Self Made Modules
 from worldcover.tiles import find_required_worldcover_tiles
+from worldcover.mosaic import mosaic_worldcover_tiles
+from worldcover.reprojection import reproject_worldcover_to_s1
+DST_NODATA = -1
 
 # =====================================================
 # PATHS
@@ -76,37 +80,22 @@ for p in WC_PATHS:
 # LOAD & MOSAIC WORLDCOVER (GEOGRAPHIC)
 # =====================================================
 print("Loading and mosaicking WorldCover tiles...")
-datasets = [rasterio.open(p) for p in WC_PATHS]
-
-wc_mosaic, wc_transform = merge(
-    datasets,
-    resampling=Resampling.nearest
-)
-
-wc_mosaic = wc_mosaic[0].astype("uint8")
-
-for ds in datasets:
-    ds.close()
+wc_mosaic, wc_transform = mosaic_worldcover_tiles(WC_PATHS)
 
 # =====================================================
 # REPROJECT WORLDCOVER TO SENTINEL-1 GRID (SAFE)
 # =====================================================
 print("Reprojecting WorldCover mosaic to Sentinel-1 grid...")
 
-DST_NODATA = -1
-wc_reproj = np.full(dst_shape, DST_NODATA, dtype="int16")
-
-reproject(
-    source=wc_mosaic,
-    destination=wc_reproj,
-    src_transform=wc_transform,
-    src_crs="EPSG:4326",
-    src_nodata=0,               # WorldCover nodata
-    dst_transform=dst_transform,
-    dst_crs=dst_crs,
-    dst_nodata=DST_NODATA,
-    resampling=Resampling.nearest,
+wc_reproj = reproject_worldcover_to_s1(
+    wc_mosaic,
+    wc_transform,
+    dst_transform,
+    dst_crs,
+    dst_shape,
 )
+
+valid_wc = wc_reproj != DST_NODATA
 
 # =====================================================
 # BUILD LAND MASK
