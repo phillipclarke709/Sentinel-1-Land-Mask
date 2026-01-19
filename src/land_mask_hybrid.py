@@ -1,12 +1,14 @@
 print("Beginning script...")
 
 from pathlib import Path
-import math
 import numpy as np
 import rasterio
 from rasterio.warp import reproject, Resampling, transform_bounds
 from rasterio.merge import merge
 from scipy.ndimage import binary_opening, binary_closing, binary_fill_holes
+
+# NEW: WorldCover tile selection module
+from worldcover.tiles import find_required_worldcover_tiles
 
 # =====================================================
 # PATHS
@@ -61,47 +63,10 @@ west, south, east, north = transform_bounds(
 print(f"AOI (WGS84): W={west:.2f}, S={south:.2f}, E={east:.2f}, N={north:.2f}")
 
 # =====================================================
-# WORLDCOVER TILE SELECTION (CORRECT + MINIMAL)
+# WORLDCOVER TILE SELECTION (MODULE)
 # =====================================================
-def snap_to_grid(value):
-    return int(math.floor(value / 3.0) * 3)
-
-def worldcover_tile_name(lat, lon):
-    lat_str = f"N{lat:02d}" if lat >= 0 else f"S{abs(lat):02d}"
-    lon_str = f"W{abs(lon):03d}" if lon < 0 else f"E{lon:03d}"
-    return f"ESA_WorldCover_10m_2021_V200_{lat_str}{lon_str}_Map.tif"
-
 print("Selecting required WorldCover tiles...")
-tiles = set()
-
-lat = snap_to_grid(south)
-while lat < north:
-    lon = snap_to_grid(west)
-    while lon < east:
-        tile_s, tile_n = lat, lat + 3
-        tile_w, tile_e = lon, lon + 3
-
-        intersects = not (
-            tile_e <= west or
-            tile_w >= east or
-            tile_n <= south or
-            tile_s >= north
-        )
-
-        if intersects:
-            tiles.add(worldcover_tile_name(lat, lon))
-
-        lon += 3
-    lat += 3
-
-WC_PATHS = []
-for t in sorted(tiles):
-    p = WORLDCOVER_DIR / t
-    if p.exists():
-        WC_PATHS.append(p)
-
-if not WC_PATHS:
-    raise RuntimeError("No WorldCover tiles found for AOI.")
+WC_PATHS = find_required_worldcover_tiles(HH_PATH, WORLDCOVER_DIR)
 
 print("Selected WorldCover tiles:")
 for p in WC_PATHS:
@@ -187,8 +152,8 @@ print("Extended WorldCover land mask complete.")
 # =====================================================
 # OPTIONAL VISUAL CHECK
 # =====================================================
-print("Loading images for visual check...")
 if __name__ == "__main__":
+    print("Loading images for visual check...")
     import matplotlib.pyplot as plt
 
     plt.figure(figsize=(12, 4))
