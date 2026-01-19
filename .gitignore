@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+venv/
+
+# Data (never commit large geospatial data)
+data/input/
+data/worldcover/
+data/output/
+
+# Raster files
+*.tif
+*.tiff
+*.SAFE
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
