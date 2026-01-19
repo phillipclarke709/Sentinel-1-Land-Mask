@@ -12,6 +12,7 @@ from scipy.ndimage import binary_opening, binary_closing, binary_fill_holes
 from worldcover.tiles import find_required_worldcover_tiles
 from worldcover.mosaic import mosaic_worldcover_tiles
 from worldcover.reprojection import reproject_worldcover_to_s1
+from worldcover.mask import build_land_mask
 DST_NODATA = -1
 
 # =====================================================
@@ -101,18 +102,11 @@ valid_wc = wc_reproj != DST_NODATA
 # BUILD LAND MASK
 # =====================================================
 print("Building land mask...")
-land_mask = np.zeros(dst_shape, dtype=bool)
-valid_wc = wc_reproj != DST_NODATA
-land_mask[valid_wc] = np.isin(wc_reproj[valid_wc], LAND_CLASSES)
-
-# =====================================================
-# MORPHOLOGICAL CLEANUP
-# =====================================================
-print("Applying morphological operations...")
-land_mask = binary_opening(land_mask, iterations=1)
-land_mask = binary_closing(land_mask, iterations=2)
-land_mask = binary_fill_holes(land_mask)
-land_mask = land_mask.astype("uint8")
+land_mask = build_land_mask(
+    wc_reproj,
+    LAND_CLASSES,
+    DST_NODATA,
+)
 
 # =====================================================
 # SAVE LAND MASK
@@ -143,6 +137,7 @@ print("Extended WorldCover land mask complete.")
 # =====================================================
 if __name__ == "__main__":
     print("Loading images for visual check...")
+    print("Please close the plot window to end the script.")
     import matplotlib.pyplot as plt
 
     plt.figure(figsize=(12, 4))
@@ -161,5 +156,3 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.show()
-
-print("Please close the plot window to end the script.")
