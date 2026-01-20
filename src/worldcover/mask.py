@@ -1,26 +1,30 @@
-from typing import List
+from typing import Tuple
 import numpy as np
 from scipy.ndimage import binary_opening, binary_closing, binary_fill_holes
 
 
 def build_land_mask(
-    wc_reproj: np.ndarray,
-    land_classes: List[int],
-    dst_nodata: int,
-) -> np.ndarray:
+    worldcover_array: np.ndarray,
+    sar_array: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Build a boolean land mask from reprojected WorldCover data
-    and apply morphological cleanup.
+    Build a boolean land mask from reprojected WorldCover data and
+    apply it to a Sentinel-1 SAR array.
     """
 
-    land_mask = np.zeros(wc_reproj.shape, dtype=bool)
+    # Land = any non-zero class except open water (80); nodata is 0 or -1.
+    land_mask = (
+        (worldcover_array != 0)
+        & (worldcover_array != 80)
+        & (worldcover_array != -1)
+    )
 
-    valid_wc = wc_reproj != dst_nodata
-    land_mask[valid_wc] = np.isin(wc_reproj[valid_wc], land_classes)
-
-    # Morphological cleanup
+    # Morphological cleanup on land only to preserve coastal water.
     land_mask = binary_opening(land_mask, iterations=1)
     land_mask = binary_closing(land_mask, iterations=2)
     land_mask = binary_fill_holes(land_mask)
 
-    return land_mask.astype("uint8")
+    sar_land_removed = sar_array.copy()
+    sar_land_removed[land_mask] = np.nan
+
+    return land_mask.astype(bool), sar_land_removed

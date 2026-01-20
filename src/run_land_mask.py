@@ -4,9 +4,7 @@ print("Beginning script...")
 from pathlib import Path
 import numpy as np
 import rasterio
-from rasterio.warp import reproject, Resampling, transform_bounds
-from rasterio.merge import merge
-from scipy.ndimage import binary_opening, binary_closing, binary_fill_holes
+from rasterio.warp import transform_bounds
 
 # Other Self Made Modules
 from worldcover.tiles import find_required_worldcover_tiles
@@ -19,29 +17,28 @@ DST_NODATA = -1
 # PATHS
 # =====================================================
 HH_PATH = Path(
-    "data/input/Browser_images/"
-    "2025-03-31-00_00_2025-03-31-23_59_"
-    "Sentinel-1_IW_HH+HV_HH_(Raw).tiff"
+    "data/input/rtc/ASF H/test_HH.tif"
+)
+HV_PATH = Path(
+    "data/input/rtc/ASF H/test_HV.tif"
 )
 
 WORLDCOVER_DIR = Path("data/worldcover/ESA_Worldcover")
 
-OUT_MASK = Path("data/output/land_mask_worldcover_extended.tif")
-OUT_IMG  = Path("data/output/S1_HH_landmasked_worldcover_extended.tif")
-
-# WorldCover land classes (everything except open water = 80)
-LAND_CLASSES = [10, 20, 30, 40, 50, 60, 70, 90, 95, 100]
-
 # =====================================================
 # LOAD SENTINEL-1 IMAGE
 # =====================================================
-print("Loading Sentinel-1 image...")
+print("Loading Sentinel-1 HH image...")
 with rasterio.open(HH_PATH) as src:
     hh = src.read(1).astype("float32")
     profile = src.profile
     dst_crs = src.crs
     dst_transform = src.transform
     dst_shape = hh.shape
+
+print("Loading Sentinel-1 HV image...")
+with rasterio.open(HV_PATH) as src:
+    hv = src.read(1).astype("float32")
 
 # =====================================================
 # DERIVE AOI FROM VALID SAR DATA (CRITICAL FIX)
@@ -66,6 +63,10 @@ west, south, east, north = transform_bounds(
 )
 
 print(f"AOI (WGS84): W={west:.2f}, S={south:.2f}, E={east:.2f}, N={north:.2f}")
+
+_bounds_tag = f"W{west:.2f}_S{south:.2f}_E{east:.2f}_N{north:.2f}"
+OUT_HH_IMG = Path(f"data/output/hh_masked_{_bounds_tag}.tif")
+OUT_HV_IMG = Path(f"data/output/hv_masked_{_bounds_tag}.tif")
 
 # =====================================================
 # WORLDCOVER TILE SELECTION (MODULE)
@@ -96,63 +97,24 @@ wc_reproj = reproject_worldcover_to_s1(
     dst_shape,
 )
 
-valid_wc = wc_reproj != DST_NODATA
-
 # =====================================================
 # BUILD LAND MASK
 # =====================================================
-print("Building land mask...")
-land_mask = build_land_mask(
-    wc_reproj,
-    LAND_CLASSES,
-    DST_NODATA,
-)
-
-# =====================================================
-# SAVE LAND MASK
-# =====================================================
-print("Saving land mask...")
-mask_profile = profile.copy()
-mask_profile.update(dtype="uint8", nodata=0)
-
-with rasterio.open(OUT_MASK, "w", **mask_profile) as dst:
-    dst.write(land_mask, 1)
+print("Building land mask and applying to Sentinel-1 HH...")
+land_mask, hh_masked = build_land_mask(wc_reproj, hh)
+hv_masked = hv.copy()
+hv_masked[land_mask] = np.nan
 
 # =====================================================
 # APPLY MASK TO SENTINEL-1
 # =====================================================
-print("Applying land mask to Sentinel-1 HH...")
-hh_masked = np.where(land_mask == 1, np.nan, hh)
-
 img_profile = profile.copy()
 img_profile.update(dtype="float32", nodata=np.nan)
 
-with rasterio.open(OUT_IMG, "w", **img_profile) as dst:
+with rasterio.open(OUT_HH_IMG, "w", **img_profile) as dst:
     dst.write(hh_masked, 1)
 
+with rasterio.open(OUT_HV_IMG, "w", **img_profile) as dst:
+    dst.write(hv_masked, 1)
+
 print("Extended WorldCover land mask complete.")
-
-# =====================================================
-# OPTIONAL VISUAL CHECK
-# =====================================================
-if __name__ == "__main__":
-    print("Loading images for visual check...")
-    print("Please close the plot window to end the script.")
-    import matplotlib.pyplot as plt
-
-    plt.figure(figsize=(12, 4))
-
-    plt.subplot(131)
-    plt.title("WorldCover (reprojected)")
-    plt.imshow(wc_reproj, cmap="tab20")
-
-    plt.subplot(132)
-    plt.title("Final Land Mask")
-    plt.imshow(land_mask, cmap="gray")
-
-    plt.subplot(133)
-    plt.title("Masked Sentinel-1 HH")
-    plt.imshow(hh_masked, cmap="gray")
-
-    plt.tight_layout()
-    plt.show()
