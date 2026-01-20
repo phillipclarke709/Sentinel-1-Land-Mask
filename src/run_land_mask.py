@@ -17,13 +17,13 @@ DST_NODATA = -1
 # PATHS
 # =====================================================
 HH_PATH = Path(
-    "data/input/rtc/ASF H/test_HH.tif"
+    "data/input/rtc/ASF H/test_HH.tif"  #Path to your input HH image
 )
 HV_PATH = Path(
-    "data/input/rtc/ASF H/test_HV.tif"
+    "data/input/rtc/ASF H/test_HV.tif"  #Path to your input HV image
 )
 
-WORLDCOVER_DIR = Path("data/worldcover/ESA_Worldcover")
+WORLDCOVER_DIR = Path("data/worldcover/ESA_Worldcover") #Path to your WorldCover tiles directory
 
 # =====================================================
 # LOAD SENTINEL-1 IMAGE
@@ -41,7 +41,7 @@ with rasterio.open(HV_PATH) as src:
     hv = src.read(1).astype("float32")
 
 # =====================================================
-# DERIVE AOI FROM VALID SAR DATA (CRITICAL FIX)
+# DERIVE AREA OF INTEREST FROM VALID SAR DATA 
 # =====================================================
 print("Computing valid-data bounds from Sentinel-1...")
 
@@ -51,7 +51,7 @@ rows, cols = np.where(valid)
 row_min, row_max = rows.min(), rows.max()
 col_min, col_max = cols.min(), cols.max()
 
-# Convert pixel indices → map coordinates
+# Convert pixel indices to map coordinates
 left,  top    = rasterio.transform.xy(dst_transform, row_min, col_min, offset="ul")
 right, bottom = rasterio.transform.xy(dst_transform, row_max, col_max, offset="lr")
 
@@ -69,7 +69,7 @@ OUT_HH_IMG = Path(f"data/output/hh_masked_{_bounds_tag}.tif")
 OUT_HV_IMG = Path(f"data/output/hv_masked_{_bounds_tag}.tif")
 
 # =====================================================
-# WORLDCOVER TILE SELECTION (MODULE)
+# WORLDCOVER TILE SELECTION CALLS
 # =====================================================
 print("Selecting required WorldCover tiles...")
 WC_PATHS = find_required_worldcover_tiles(HH_PATH, WORLDCOVER_DIR)
@@ -79,13 +79,13 @@ for p in WC_PATHS:
     print(" ", p.name)
 
 # =====================================================
-# LOAD & MOSAIC WORLDCOVER (GEOGRAPHIC)
+# LOAD & MOSAIC WORLDCOVER
 # =====================================================
 print("Loading and mosaicking WorldCover tiles...")
 wc_mosaic, wc_transform = mosaic_worldcover_tiles(WC_PATHS)
 
 # =====================================================
-# REPROJECT WORLDCOVER TO SENTINEL-1 GRID (SAFE)
+# REPROJECT WORLDCOVER TO SENTINEL-1 GRID
 # =====================================================
 print("Reprojecting WorldCover mosaic to Sentinel-1 grid...")
 
