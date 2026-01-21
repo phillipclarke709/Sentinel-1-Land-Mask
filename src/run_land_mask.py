@@ -17,10 +17,10 @@ DST_NODATA = -1
 # PATHS
 # =====================================================
 HH_PATH = Path(
-    "data/input/Browser_images(1)/2025-03-28-00_00_2025-03-28-23_59_Sentinel-1_IW_HH+HV_HH_(Raw).tiff"  #Path to your input HH image
+    "data/input/error testing/2026-01-21-00_00_2026-01-21-23_59_Sentinel-1_IW_HH_HH_(Raw).tiff"  #Path to your input HH image
 )
 HV_PATH = Path(
-    "data/input/Browser_images(1)/2025-03-28-00_00_2025-03-28-23_59_Sentinel-1_IW_HH+HV_HV_(Raw).tiff"  #Path to your input HV image
+    "data/input/error testing/2026-01-21-00_00_2026-01-21-23_59_Sentinel-1_IW_HH_HH_(Raw).tiff"  #Path to your input HV image
 )
 
 WORLDCOVER_DIR = Path("data/worldcover/ESA_Worldcover") #Path to your WorldCover tiles directory
@@ -97,16 +97,17 @@ wc_reproj = reproject_worldcover_to_s1(
     dst_shape,
 )
 
-print("wc_reproj min/max:", wc_reproj.min(), wc_reproj.max())
-print("wc_reproj nodata count:", np.sum(wc_reproj == -1))
-print("wc_reproj water count:", np.sum(wc_reproj == 80))
+if np.all(wc_reproj == DST_NODATA):
+    raise RuntimeError(
+        "WorldCover reprojection returned only nodata. "
+        "Check that the required tiles cover the scene bounds."
+    )
 
 # =====================================================
 # BUILD LAND MASK
 # =====================================================
 print("Building land mask and applying to Sentinel-1 HH...")
 land_mask, hh_masked = build_land_mask(wc_reproj, hh)
-print("land_mask true count:", np.sum(land_mask))
 hv_masked = hv.copy()
 hv_masked[land_mask] = np.nan
 
