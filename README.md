@@ -24,7 +24,7 @@ This repository does not include:
 
 These must be downloaded separately.
 ESA WorldCover tiles can be downloaded from the official portal:
-https://worldcover2021.esa.int/ (Downloads) or https://esa-worldcover.org/en/data-access
+https://worldcover2021.esa.int/downloader
 
 Store the tiles under `data/worldcover/ESA_Worldcover` so the script can find
 them by filename (e.g., `ESA_WorldCover_10m_2021_V200_N54W060_Map.tif`). If you
