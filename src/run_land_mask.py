@@ -8,8 +8,7 @@ from rasterio.warp import transform_bounds
 
 # Other Self Made Modules
 from worldcover.tiles import find_required_worldcover_tiles
-from worldcover.mosaic import mosaic_worldcover_tiles
-from worldcover.reprojection import reproject_worldcover_to_s1
+from worldcover.reprojection import reproject_worldcover_tiles_to_s1
 from worldcover.mask import build_land_mask
 DST_NODATA = -1
 
@@ -17,10 +16,10 @@ DST_NODATA = -1
 # PATHS
 # =====================================================
 HH_PATH = Path(
-    "data/input/error testing/2026-01-21-00_00_2026-01-21-23_59_Sentinel-1_IW_HH_HH_(Raw).tiff"  #Path to your input HH image
+    "data/input/Browser_images(1)/2025-03-28-00_00_2025-03-28-23_59_Sentinel-1_IW_HH+HV_HH_(Raw).tiff"  #Path to your input HH image
 )
 HV_PATH = Path(
-    "data/input/error testing/2026-01-21-00_00_2026-01-21-23_59_Sentinel-1_IW_HH_HH_(Raw).tiff"  #Path to your input HV image
+    "data/input/Browser_images(1)/2025-03-28-00_00_2025-03-28-23_59_Sentinel-1_IW_HH+HV_HV_(Raw).tiff"  #Path to your input HV image
 )
 
 WORLDCOVER_DIR = Path("data/worldcover/ESA_Worldcover") #Path to your WorldCover tiles directory
@@ -36,20 +35,22 @@ with rasterio.open(HH_PATH) as src:
     dst_transform = src.transform
     dst_shape = hh.shape
 
-print("Loading Sentinel-1 HV image...")
-with rasterio.open(HV_PATH) as src:
-    hv = src.read(1).astype("float32")
-
 # =====================================================
 # DERIVE AREA OF INTEREST FROM VALID SAR DATA 
 # =====================================================
 print("Computing valid-data bounds from Sentinel-1...")
 
 valid = np.isfinite(hh)
-rows, cols = np.where(valid)
+row_any = valid.any(axis=1)
+col_any = valid.any(axis=0)
 
-row_min, row_max = rows.min(), rows.max()
-col_min, col_max = cols.min(), cols.max()
+if not row_any.any() or not col_any.any():
+    raise RuntimeError("No finite pixels found in the HH image.")
+
+row_min = row_any.argmax()
+row_max = len(row_any) - row_any[::-1].argmax() - 1
+col_min = col_any.argmax()
+col_max = len(col_any) - col_any[::-1].argmax() - 1
 
 # Convert pixel indices to map coordinates
 left,  top    = rasterio.transform.xy(dst_transform, row_min, col_min, offset="ul")
@@ -72,29 +73,27 @@ OUT_HV_IMG = Path(f"data/output/hv_masked_{_bounds_tag}.tif")
 # WORLDCOVER TILE SELECTION CALLS
 # =====================================================
 print("Selecting required WorldCover tiles...")
-WC_PATHS = find_required_worldcover_tiles(HH_PATH, WORLDCOVER_DIR)
+WC_PATHS = find_required_worldcover_tiles(
+    HH_PATH,
+    WORLDCOVER_DIR,
+    bounds_wgs84=(west, south, east, north),
+)
 
 print("Selected WorldCover tiles:")
 for p in WC_PATHS:
     print(" ", p.name)
 
 # =====================================================
-# LOAD & MOSAIC WORLDCOVER
+# REPROJECT WORLDCOVER TILES TO SENTINEL-1 GRID
 # =====================================================
-print("Loading and mosaicking WorldCover tiles...")
-wc_mosaic, wc_transform = mosaic_worldcover_tiles(WC_PATHS)
+print("Reprojecting WorldCover tiles to Sentinel-1 grid...")
 
-# =====================================================
-# REPROJECT WORLDCOVER TO SENTINEL-1 GRID
-# =====================================================
-print("Reprojecting WorldCover mosaic to Sentinel-1 grid...")
-
-wc_reproj = reproject_worldcover_to_s1(
-    wc_mosaic,
-    wc_transform,
+wc_reproj = reproject_worldcover_tiles_to_s1(
+    WC_PATHS,
     dst_transform,
     dst_crs,
     dst_shape,
+    num_threads=None,
 )
 
 if np.all(wc_reproj == DST_NODATA):
@@ -108,7 +107,14 @@ if np.all(wc_reproj == DST_NODATA):
 # =====================================================
 print("Building land mask and applying to Sentinel-1 HH...")
 land_mask, hh_masked = build_land_mask(wc_reproj, hh)
-hv_masked = hv.copy()
+
+print("Loading Sentinel-1 HV image...")
+with rasterio.open(HV_PATH) as src:
+    if src.crs != dst_crs or src.transform != dst_transform or src.shape != dst_shape:
+        raise RuntimeError("HV grid does not match HH (CRS/transform/shape).")
+    hv = src.read(1).astype("float32")
+
+hv_masked = hv
 hv_masked[land_mask] = np.nan
 
 # =====================================================

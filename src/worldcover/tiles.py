@@ -22,11 +22,12 @@ def worldcover_tile_name(lat: int, lon: int) -> str:
     return f"ESA_WorldCover_10m_2021_V200_{lat_str}{lon_str}_Map.tif"
 
 
-from typing import Union, List
+from typing import Union, List, Optional, Tuple
 
 def find_required_worldcover_tiles(
     s1_path: Union[Path, str],
     worldcover_dir: Union[Path, str],
+    bounds_wgs84: Optional[Tuple[float, float, float, float]] = None,
 ) -> List[Path]:
 
     """
@@ -36,22 +37,25 @@ def find_required_worldcover_tiles(
     Returns a list of existing tile paths.
     """
 
-    # -------------------------------------------------
-    # Read Sentinel-1 bounds
-    # -------------------------------------------------
-    with rasterio.open(s1_path) as src:
-        bounds_utm = src.bounds
-        crs_utm = src.crs
+    if bounds_wgs84 is None:
+        # -------------------------------------------------
+        # Read Sentinel-1 bounds
+        # -------------------------------------------------
+        with rasterio.open(s1_path) as src:
+            bounds_utm = src.bounds
+            crs_utm = src.crs
 
-    west, south, east, north = transform_bounds(
-        crs_utm,
-        "EPSG:4326",
-        bounds_utm.left,
-        bounds_utm.bottom,
-        bounds_utm.right,
-        bounds_utm.top,
-        densify_pts=21,
-    )
+        west, south, east, north = transform_bounds(
+            crs_utm,
+            "EPSG:4326",
+            bounds_utm.left,
+            bounds_utm.bottom,
+            bounds_utm.right,
+            bounds_utm.top,
+            densify_pts=21,
+        )
+    else:
+        west, south, east, north = bounds_wgs84
 
     # -------------------------------------------------
     # Select intersecting WorldCover tiles (3° grid)

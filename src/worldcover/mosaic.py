@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 import rasterio
 import numpy as np
@@ -9,6 +9,7 @@ from rasterio.warp import Resampling
 
 def mosaic_worldcover_tiles(
     tile_paths: List[Path],
+    bounds_wgs84: Optional[Tuple[float, float, float, float]] = None,
 ) -> Tuple[np.ndarray, rasterio.Affine]:
     """
     Load and mosaic ESA WorldCover tiles in geographic coordinates (EPSG:4326).
@@ -22,6 +23,7 @@ def mosaic_worldcover_tiles(
     try:
         wc_mosaic, wc_transform = merge(
             datasets,
+            bounds=bounds_wgs84,
             resampling=Resampling.nearest,
         )
     finally:
