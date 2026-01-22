@@ -8,11 +8,19 @@ handling of SAR geometry and geocoding.
 
 ```mermaid
 graph TD
-  A[src/] --> B[run_land_mask.py]
-  A --> C[worldcover/]
-  C --> D[tiles.py]
-  C --> E[reprojection.py]
-  C --> F[mask.py]
+  A[Sentinel1_Land_Mask] --> B[src/]
+  A --> C[data/]
+
+  B --> D[run_land_mask.py]
+  B --> E[worldcover/]
+
+  E --> F[tiles.py]
+  E --> G[reprojection.py]
+  E --> H[mask.py]
+
+  C --> I[input/]
+  C --> J[output/]
+  C --> K[worldcover/]
 ```
 
 ## Features
