@@ -4,6 +4,16 @@ This project provides a Python-based workflow to generate accurate land masks fo
 Sentinel-1 SAR imagery using ESA WorldCover as a static land prior, with correct
 handling of SAR geometry and geocoding.
 
+## Repository Structure
+
+```mermaid
+graph TD
+  A[src/] --> B[run_land_mask.py]
+  A --> C[worldcover/]
+  C --> D[tiles.py]
+  C --> E[reprojection.py]
+  C --> F[mask.py]
+
 ## Features
 - Works with geocoded Sentinel-1 GRD / RTC imagery
 - Automatic selection of required ESA WorldCover tiles

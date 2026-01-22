@@ -16,10 +16,10 @@ DST_NODATA = -1
 # PATHS
 # =====================================================
 HH_PATH = Path(
-    "data/input/Browser_images(1)/2025-03-28-00_00_2025-03-28-23_59_Sentinel-1_IW_HH+HV_HH_(Raw).tiff"  #Path to your input HH image
+    "data/input/Browser_images/2025-03-31-00_00_2025-03-31-23_59_Sentinel-1_IW_HH+HV_HH_(Raw).tiff"  #Path to your input HH image
 )
 HV_PATH = Path(
-    "data/input/Browser_images(1)/2025-03-28-00_00_2025-03-28-23_59_Sentinel-1_IW_HH+HV_HV_(Raw).tiff"  #Path to your input HV image
+    "data/input/Browser_images/2025-03-31-00_00_2025-03-31-23_59_Sentinel-1_IW_HH+HV_HV_(Raw).tiff"  #Path to your input HV image
 )
 
 WORLDCOVER_DIR = Path("data/worldcover/ESA_Worldcover") #Path to your WorldCover tiles directory
