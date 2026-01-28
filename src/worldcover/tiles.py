@@ -12,14 +12,14 @@ def snap_to_worldcover_grid(value: float) -> int:
     return int(math.floor(value / 3.0) * 3)
 
 
-def worldcover_tile_name(lat: int, lon: int) -> str:
+def worldcover_tile_name(lat: int, lon: int, suffix: str = "_Map.tif") -> str:
     """
     Construct an ESA WorldCover tile filename from
     the southwest corner coordinates.
     """
     lat_str = f"N{lat:02d}" if lat >= 0 else f"S{abs(lat):02d}"
     lon_str = f"W{abs(lon):03d}" if lon < 0 else f"E{lon:03d}"
-    return f"ESA_WorldCover_10m_2021_V200_{lat_str}{lon_str}_Map.tif"
+    return f"ESA_WorldCover_10m_2021_V200_{lat_str}{lon_str}{suffix}"
 
 
 from typing import Union, List, Optional, Tuple
@@ -28,6 +28,7 @@ def find_required_worldcover_tiles(
     s1_path: Union[Path, str],
     worldcover_dir: Union[Path, str],
     bounds_wgs84: Optional[Tuple[float, float, float, float]] = None,
+    filename_suffix: str = "_Map.tif",
 ) -> List[Path]:
 
     """
@@ -79,7 +80,7 @@ def find_required_worldcover_tiles(
             )
 
             if intersects:
-                tiles.add(worldcover_tile_name(lat, lon))
+                tiles.add(worldcover_tile_name(lat, lon, suffix=filename_suffix))
 
             lon += 3
         lat += 3

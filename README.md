@@ -46,11 +46,14 @@ ESA WorldCover tiles can be downloaded from the official portal:
 https://worldcover2021.esa.int/downloader
 
 Store the tiles under `data/worldcover/ESA_Worldcover` so the script can find
-them by filename (e.g., `ESA_WorldCover_10m_2021_V200_N54W060_Map.tif`). If you
-keep them elsewhere, update the `WORLDCOVER_DIR` path in `src/run_land_mask.py`.
+them by filename (e.g., `ESA_WorldCover_10m_2021_V200_N54W060_Map.tif`).
+Preprocess them into land-mask tiles before running the masking pipeline.
+Preprocessed tiles are written to `data/worldcover/preprocessed` with the same
+bounds in the filename (e.g., `ESA_WorldCover_10m_2021_V200_N54W060_preprocessed.tif`).
 
 ## Usage
 ```bash
+python src/worldcover/preprocess.py
 python src/run_land_mask.py
 ```
 

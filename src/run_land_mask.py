@@ -1,3 +1,6 @@
+import time
+
+start_time = time.time()
 print("Beginning script...")
 
 # Standard Libraries
@@ -5,12 +8,11 @@ from pathlib import Path
 import numpy as np
 import rasterio
 from rasterio.warp import transform_bounds
+from scipy.ndimage import binary_closing, binary_fill_holes, binary_dilation
 
 # Other Self Made Modules
 from worldcover.tiles import find_required_worldcover_tiles
-from worldcover.reprojection import reproject_worldcover_tiles_to_s1
-from worldcover.mask import build_land_mask
-DST_NODATA = -1
+from worldcover.reprojection import reproject_preprocessed_landmask_tiles_to_s1
 
 # =====================================================
 # PATHS
@@ -22,7 +24,7 @@ HV_PATH = Path(
     "data/input/Browser_images/2025-03-31-00_00_2025-03-31-23_59_Sentinel-1_IW_HH+HV_HV_(Raw).tiff"  #Path to your input HV image
 )
 
-WORLDCOVER_DIR = Path("data/worldcover/ESA_Worldcover") #Path to your WorldCover tiles directory
+WORLDCOVER_DIR = Path("data/worldcover/preprocessed") #Path to preprocessed WorldCover tiles directory
 
 # =====================================================
 # LOAD SENTINEL-1 IMAGE
@@ -77,6 +79,7 @@ WC_PATHS = find_required_worldcover_tiles(
     HH_PATH,
     WORLDCOVER_DIR,
     bounds_wgs84=(west, south, east, north),
+    filename_suffix="_preprocessed.tif",
 )
 
 print("Selected WorldCover tiles:")
@@ -87,8 +90,7 @@ for p in WC_PATHS:
 # REPROJECT WORLDCOVER TILES TO SENTINEL-1 GRID
 # =====================================================
 print("Reprojecting WorldCover tiles to Sentinel-1 grid...")
-
-wc_reproj = reproject_worldcover_tiles_to_s1(
+land_mask = reproject_preprocessed_landmask_tiles_to_s1(
     WC_PATHS,
     dst_transform,
     dst_crs,
@@ -96,17 +98,29 @@ wc_reproj = reproject_worldcover_tiles_to_s1(
     num_threads=None,
 )
 
-if np.all(wc_reproj == DST_NODATA):
+nodata_count = np.sum(land_mask == 255)
+if nodata_count == land_mask.size:
     raise RuntimeError(
-        "WorldCover reprojection returned only nodata. "
+        "WorldCover land mask is all nodata within the AOI. "
         "Check that the required tiles cover the scene bounds."
     )
+if nodata_count > 0:
+    print(
+        f"Warning: {nodata_count} nodata pixels in WorldCover land mask. "
+        "These will be treated as water."
+    )
+
+land_mask = land_mask == 1
+land_mask = binary_closing(land_mask, iterations=1)
+land_mask = binary_fill_holes(land_mask)
+land_mask = binary_dilation(land_mask, iterations=1)
 
 # =====================================================
 # BUILD LAND MASK
 # =====================================================
-print("Building land mask and applying to Sentinel-1 HH...")
-land_mask, hh_masked = build_land_mask(wc_reproj, hh)
+print("Applying land mask to Sentinel-1 HH...")
+hh_masked = hh
+hh_masked[land_mask] = np.nan
 
 print("Loading Sentinel-1 HV image...")
 with rasterio.open(HV_PATH) as src:
@@ -130,3 +144,4 @@ with rasterio.open(OUT_HV_IMG, "w", **img_profile) as dst:
     dst.write(hv_masked, 1)
 
 print("Extended WorldCover land mask complete.")
+print(f"Script ran in {time.time() - start_time:.2f} seconds.")
