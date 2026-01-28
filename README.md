@@ -17,10 +17,13 @@ graph TD
   E --> F[tiles.py]
   E --> G[reprojection.py]
   E --> H[mask.py]
+  E --> L[preprocess.py]
 
   C --> I[input/]
   C --> J[output/]
   C --> K[worldcover/]
+  K --> M[preprocessed/]
+  K --> N[ESA_Worldcover/]
 ```
 
 ## Features
