@@ -9,7 +9,7 @@ import numpy as np
 import rasterio
 from rasterio.warp import transform_bounds
 from scipy.ndimage import binary_closing, binary_fill_holes, binary_dilation
-
+ 
 # Other Self Made Modules
 from worldcover.tiles import find_required_worldcover_tiles
 from worldcover.reprojection import reproject_preprocessed_landmask_tiles_to_s1
@@ -18,10 +18,10 @@ from worldcover.reprojection import reproject_preprocessed_landmask_tiles_to_s1
 # PATHS
 # =====================================================
 HH_PATH = Path(
-    "data/input/Browser_images/2025-03-31-00_00_2025-03-31-23_59_Sentinel-1_IW_HH+HV_HH_(Raw).tiff"  #Path to your input HH image
+    "data/input/Browser_images(4)/2025-02-24-00_00_2025-02-24-23_59_Sentinel-1_EW_HH+HV_HH_(Raw).tiff"  #Path to your input HH image
 )
 HV_PATH = Path(
-    "data/input/Browser_images/2025-03-31-00_00_2025-03-31-23_59_Sentinel-1_IW_HH+HV_HV_(Raw).tiff"  #Path to your input HV image
+    "data/input/Browser_images(4)/2025-02-24-00_00_2025-02-24-23_59_Sentinel-1_EW_HH+HV_HV_(Raw).tiff"  #Path to your input HV image
 )
 
 WORLDCOVER_DIR = Path("data/worldcover/preprocessed") #Path to preprocessed WorldCover tiles directory
@@ -104,16 +104,15 @@ if nodata_count == land_mask.size:
         "WorldCover land mask is all nodata within the AOI. "
         "Check that the required tiles cover the scene bounds."
     )
-if nodata_count > 0:
-    print(
-        f"Warning: {nodata_count} nodata pixels in WorldCover land mask. "
-        "These will be treated as water."
-    )
+
+# =====================================================
+# CLEANING & BUFFING LAND MASK COASTLINE
+# =====================================================
 
 land_mask = land_mask == 1
 land_mask = binary_closing(land_mask, iterations=1)
 land_mask = binary_fill_holes(land_mask)
-land_mask = binary_dilation(land_mask, iterations=1)
+land_mask = binary_dilation(land_mask, iterations=2)
 
 # =====================================================
 # BUILD LAND MASK
