@@ -1,4 +1,4 @@
-# Python
+# Python bytecode cache folders created automatically by the interpreter.
 __pycache__/
 *.pyc
 *.pyo
@@ -7,20 +7,32 @@ __pycache__/
 .venv
 venv/
 
-# Data (never commit large geospatial data)
+# Input data should not be versioned.
 data/input/
-data/worldcover/
+# Generated outputs should not be versioned.
 data/output/
+# Ignore everything under worldcover by default.
+data/worldcover/*
+# Re-include the preprocessed folder itself.
+!data/worldcover/preprocessed/
+# Re-include preprocessed WorldCover GeoTIFF tiles for sharing.
+!data/worldcover/preprocessed/*.tif
 
-# Raster files
+# Ignore GeoTIFF files globally by default.
 *.tif
+# Ignore alternate GeoTIFF extension globally by default.
 *.tiff
+# Ignore Sentinel SAFE packages.
 *.SAFE
+# Override global GeoTIFF ignore for committed preprocessed tiles.
+!data/worldcover/preprocessed/*.tif
 
-# OS
+# macOS Finder metadata files.
 .DS_Store
+# Windows Explorer metadata files.
 Thumbs.db
 
-# IDEs
+# VS Code workspace settings.
 .vscode/
+# JetBrains IDE project settings.
 .idea/
