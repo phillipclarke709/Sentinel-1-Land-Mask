@@ -39,7 +39,6 @@ WORLDCOVER_DIR = Path("data/worldcover/preprocessed") #Path to preprocessed Worl
 # =====================================================
 # PROCESS SCENES
 # =====================================================
-total_start = time.time()
 try:
     scene_path = prompt_for_scene_file()
 except RuntimeError as exc:
